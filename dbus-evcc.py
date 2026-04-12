@@ -26,8 +26,8 @@ class DbusEvccChargerService:
         deviceinstance = int(config['DEFAULT']['Deviceinstance'])
         lpInstance = int(config['DEFAULT']['LoadpointInstance'])
         acPosition = int(config['DEFAULT']['AcPosition'])
-		setVoltages = int(config['DEFAULT']['setVoltages'])
-		setCurrents = int(config['DEFAULT']['setCurrents'])
+        voltagesSet = int(config['DEFAULT']['SetVoltages'])
+        currentsSet = int(config['DEFAULT']['SetCurrents'])
 
         self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
         self._paths = paths
@@ -55,6 +55,7 @@ class DbusEvccChargerService:
 
         # Create the mandatory objects
         self._dbusservice.add_path('/DeviceInstance', deviceinstance)
+        self._dbusservice.add_path('/LpInstance', lpInstance)
         self._dbusservice.add_path('/ProductId', 0xC025)  # found on https://gist.github.com/seidler2547/52f3e91cbcbf2fa257ae79371bb78588 - should be EV Charge Station 32A
         self._dbusservice.add_path('/ProductName', productname)
         self._dbusservice.add_path('/CustomName', customname)
@@ -65,6 +66,8 @@ class DbusEvccChargerService:
         self._dbusservice.add_path('/UpdateIndex', 0)
 
         self._dbusservice.add_path('/Position', acPosition) # 0: ac out, 1: ac in
+        self._dbusservice.add_path('/VoltagesSet', voltagesSet) # 0: n, 1: yes
+        self._dbusservice.add_path('/CurrentsSet', currentsSet) # 0: n, 1: yes
 
         # add paths without units
         for path in paths_wo_unit:
@@ -138,16 +141,17 @@ class DbusEvccChargerService:
     def _update(self):
         try:
             # get data from evcc
-            config = self._getConfig()
-            lpInstance = int(config['DEFAULT']['LoadpointInstance'])
+            lpInstance = self._dbusservice['/LpInstance']
             result = self._getEvccChargerData()
             #result = data["result"] # removed because of API-change in evcc v0.207
             loadpoint = result["loadpoints"][lpInstance]
+            voltagesSet = self._dbusservice['/VoltagesSet']
+            currentsSet = self._dbusservice['/CurrentsSet']
 
             # send data to DBus
 
             # not really needed:
-            if setVoltages == 1 and setCurrents == 1:
+            if voltagesSet == 1 and currentsSet == 1:
                 voltage1 = float(loadpoint['chargeVoltages'][0]) # volt
                 voltage2 = float(loadpoint['chargeVoltages'][1]) # volt
                 voltage3 = float(loadpoint['chargeVoltages'][2]) # volt
@@ -155,7 +159,7 @@ class DbusEvccChargerService:
                 self._dbusservice['/Ac/L2/Power'] = float(loadpoint['chargeCurrents'][1]) * voltage2 # watt
                 self._dbusservice['/Ac/L3/Power'] = float(loadpoint['chargeCurrents'][2]) * voltage3 # watt
                 self._dbusservice['/Ac/Voltage'] = float(voltage1 + voltage2 + voltage3) / 3 # average voltage
-            elif setVoltages == 0 and setCurrents == 1:
+            elif voltagesSet == 0 and currentsSet == 1:
                 voltage = 230 # adjust to your voltage
                 self._dbusservice['/Ac/L1/Power'] = float(loadpoint['chargeCurrents'][0]) * voltage # watt
                 self._dbusservice['/Ac/L2/Power'] = float(loadpoint['chargeCurrents'][1]) * voltage # watt
@@ -258,7 +262,7 @@ def main():
                 '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
                 '/ChargingTime': {'initial': 0, 'textformat': _s},
                 '/Ac/Voltage': {'initial': 0, 'textformat': _v},
-                '/Current': {'initial': 0, 'textformat': _a},
+                '/Current': {'initial': 0, 'textformat': _a},	
                 '/SetCurrent': {'initial': 0, 'textformat': _a},
                 '/MaxCurrent': {'initial': 0, 'textformat': _a},
                 #'/MCU/Temperature': {'initial': 0, 'textformat': _degC},
