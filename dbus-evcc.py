@@ -26,6 +26,8 @@ class DbusEvccChargerService:
         deviceinstance = int(config['DEFAULT']['Deviceinstance'])
         lpInstance = int(config['DEFAULT']['LoadpointInstance'])
         acPosition = int(config['DEFAULT']['AcPosition'])
+		setVoltages = int(config['DEFAULT']['setVoltages'])
+		setCurrents = int(config['DEFAULT']['setCurrents'])
 
         self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
         self._paths = paths
@@ -144,12 +146,21 @@ class DbusEvccChargerService:
 
             # send data to DBus
 
-            # not really needed, but can be enabled
-            voltage = 230 # adjust to your voltage
-            self._dbusservice['/Ac/L1/Power'] = float(loadpoint['chargeCurrents'][0]) * voltage # watt
-            self._dbusservice['/Ac/L2/Power'] = float(loadpoint['chargeCurrents'][1]) * voltage # watt
-            self._dbusservice['/Ac/L3/Power'] = float(loadpoint['chargeCurrents'][2]) * voltage # watt
-            self._dbusservice['/Ac/Voltage'] = voltage
+            # not really needed:
+			if setVoltages == 1 and setCurrents == 1:
+			    voltage1 = float(loadpoint['chargeVoltages'][0]) # volt
+			    voltage2 = float(loadpoint['chargeVoltages'][1]) # volt
+			    voltage3 = float(loadpoint['chargeVoltages'][2]) # volt
+                self._dbusservice['/Ac/L1/Power'] = float(loadpoint['chargeCurrents'][0]) * voltage1 # watt
+                self._dbusservice['/Ac/L2/Power'] = float(loadpoint['chargeCurrents'][1]) * voltage2 # watt
+                self._dbusservice['/Ac/L3/Power'] = float(loadpoint['chargeCurrents'][2]) * voltage3 # watt
+                self._dbusservice['/Ac/Voltage'] = float(voltage1 + voltage2 + voltage3) / 3 # average voltage
+			elif setVoltages == 0 and setCurrents == 1:
+                voltage = 230 # adjust to your voltage
+                self._dbusservice['/Ac/L1/Power'] = float(loadpoint['chargeCurrents'][0]) * voltage # watt
+                self._dbusservice['/Ac/L2/Power'] = float(loadpoint['chargeCurrents'][1]) * voltage # watt
+                self._dbusservice['/Ac/L3/Power'] = float(loadpoint['chargeCurrents'][2]) * voltage # watt
+                self._dbusservice['/Ac/Voltage'] = voltage
 
             self._dbusservice['/Ac/Power'] = float(loadpoint['chargePower']) # watt
             #self._dbusservice['/Current'] = float(loadpoint['chargeCurrents'][0])
