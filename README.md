@@ -30,6 +30,8 @@ Within the project there is a file `/data/dbus-evcc/config.ini` - just change th
 | DEFAULT  | Deviceinstance | Unique ID identifying the charger in Venus OS |
 | DEFAULT  | LoadpointInstance | Read readme.md first! Default = 0. Count up for every additional loadpoint |
 | DEFAULT  | AcPosition | Charger AC-Position: 0 = AC out, 1 = AC in |
+| DEFAULT  | setVoltages | are chargeVoltages given in http://[evcc-ip]:7070/api/state under "loadpoints"? 1 = yes, 0 = no |
+| DEFAULT  | setCurrents | are chargeCurrents given in http://[evcc-ip]:7070/api/state under "loadpoints"? 1 = yes, 0 = no |
 | ONPREMISE  | Host | IP or hostname of EVCC |
 
 ## If you have two or more load points in EVCC
