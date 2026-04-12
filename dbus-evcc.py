@@ -199,12 +199,12 @@ class DbusEvccChargerService:
             if status == 0:
                 self._dbusservice['/Ac/Energy/Forward'] = 0
             else:
-                self._dbusservice['/Ac/Energy/Forward'] = float(loadpoint['chargedEnergy']) / 1000  # kWh
+                self._dbusservice['/Ac/Energy/Forward'] = float(loadpoint['chargedEnergy']) #/ 1000  # kWh
 
             if status == 0:
                 self._dbusservice['/ChargingTime'] = 0
             else:
-                self._dbusservice['/ChargingTime'] = int(loadpoint["chargeDuration"])/1000000000  # s
+                self._dbusservice['/ChargingTime'] = int(loadpoint["chargeDuration"]) #/ 1000000000  # s
 
             # logging
             logging.debug("Wallbox Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
