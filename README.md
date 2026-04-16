@@ -32,6 +32,7 @@ Within the project there is a file `/data/dbus-evcc/config.ini` - just change th
 | DEFAULT  | AcPosition | Charger AC-Position: 0 = AC out, 1 = AC in |
 | DEFAULT  | setVoltages | are chargeVoltages given in http://[evcc-ip]:7070/api/state under "loadpoints"? 1 = yes, 0 = no |
 | DEFAULT  | setCurrents | are chargeCurrents given in http://[evcc-ip]:7070/api/state under "loadpoints"? 1 = yes, 0 = no |
+| DEFAULT  | ApiInterval | interval for evcc api calls in ms (keep in mind that evcc has a cycle of 30s by default) |
 | ONPREMISE  | Host | IP or hostname of EVCC |
 
 ## If you have two or more load points in EVCC
