@@ -23,11 +23,16 @@ from vedbus import VeDbusService
 class DbusEvccChargerService:
     def __init__(self, servicename, paths, productname='EVCC-Charger', connection='EVCC REST API'):
         config = self._getConfig()
+        global lpInstance
+        global voltagesSet
+        global currentsSet
+        global apiInterval
         deviceinstance = int(config['DEFAULT']['Deviceinstance'])
         lpInstance = int(config['DEFAULT']['LoadpointInstance'])
         acPosition = int(config['DEFAULT']['AcPosition'])
         voltagesSet = int(config['DEFAULT']['SetVoltages'])
         currentsSet = int(config['DEFAULT']['SetCurrents'])
+        apiInterval = max(int(config['DEFAULT']['ApiInterval']), 20000)
 
         self._dbusservice = VeDbusService("{}.http_{:02d}".format(servicename, deviceinstance))
         self._paths = paths
@@ -68,6 +73,7 @@ class DbusEvccChargerService:
         self._dbusservice.add_path('/Position', acPosition) # 0: ac out, 1: ac in
         self._dbusservice.add_path('/VoltagesSet', voltagesSet) # 0: n, 1: yes
         self._dbusservice.add_path('/CurrentsSet', currentsSet) # 0: n, 1: yes
+        self._dbusservice.add_path('/ApiInterval', apiInterval) # refresh interval in ms
 
         # add paths without units
         for path in paths_wo_unit:
@@ -85,7 +91,7 @@ class DbusEvccChargerService:
         self._chargingTime = 0.0
 
         # add _update function 'timer'
-        gobject.timeout_add(2000, self._update)  # pause 2sec before the next request
+        gobject.timeout_add(apiInterval, self._update)  # pause 2sec before the next request
 
         # add _signOfLife 'timer' to get feedback in log every 5minutes
         gobject.timeout_add(self._getSignOfLifeInterval() * 60 * 1000, self._signOfLife)
@@ -152,19 +158,20 @@ class DbusEvccChargerService:
 
             # not really needed:
             if voltagesSet == 1 and currentsSet == 1:
-                voltage1 = float(loadpoint['chargeVoltages'][0]) # volt
-                voltage2 = float(loadpoint['chargeVoltages'][1]) # volt
-                voltage3 = float(loadpoint['chargeVoltages'][2]) # volt
+                voltage1 = self._dbusservice['/Ac/L1/Voltage'] = float(loadpoint['chargeVoltages'][0]) # volt
+                voltage2 = self._dbusservice['/Ac/L2/Voltage'] = float(loadpoint['chargeVoltages'][1]) # volt
+                voltage3 = self._dbusservice['/Ac/L3/Voltage'] = float(loadpoint['chargeVoltages'][2]) # volt
                 self._dbusservice['/Ac/L1/Power'] = float(loadpoint['chargeCurrents'][0]) * voltage1 # watt
                 self._dbusservice['/Ac/L2/Power'] = float(loadpoint['chargeCurrents'][1]) * voltage2 # watt
                 self._dbusservice['/Ac/L3/Power'] = float(loadpoint['chargeCurrents'][2]) * voltage3 # watt
                 self._dbusservice['/Ac/Voltage'] = float(voltage1 + voltage2 + voltage3) / 3 # average voltage
             elif voltagesSet == 0 and currentsSet == 1:
-                voltage = 230 # adjust to your voltage
+                voltage = self._dbusservice['/Ac/Voltage'] = 230 # adjust to your voltage
                 self._dbusservice['/Ac/L1/Power'] = float(loadpoint['chargeCurrents'][0]) * voltage # watt
                 self._dbusservice['/Ac/L2/Power'] = float(loadpoint['chargeCurrents'][1]) * voltage # watt
                 self._dbusservice['/Ac/L3/Power'] = float(loadpoint['chargeCurrents'][2]) * voltage # watt
-                self._dbusservice['/Ac/Voltage'] = voltage
+            else:
+                self._dbusservice['/Ac/Voltage'] = 230 # adjust to your voltage
 
             self._dbusservice['/Ac/Power'] = float(loadpoint['chargePower']) # watt
             #self._dbusservice['/Current'] = float(loadpoint['chargeCurrents'][0])
@@ -262,6 +269,9 @@ def main():
                 '/Ac/Energy/Forward': {'initial': 0, 'textformat': _kwh},
                 '/ChargingTime': {'initial': 0, 'textformat': _s},
                 '/Ac/Voltage': {'initial': 0, 'textformat': _v},
+				'/Ac/L1/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L2/Voltage': {'initial': 0, 'textformat': _v},
+                '/Ac/L3/Voltage': {'initial': 0, 'textformat': _v},
                 '/Current': {'initial': 0, 'textformat': _a},	
                 '/SetCurrent': {'initial': 0, 'textformat': _a},
                 '/MaxCurrent': {'initial': 0, 'textformat': _a},
@@ -271,6 +281,9 @@ def main():
         )
 
         logging.info('Connected to dbus, and switching over to gobject.MainLoop() (= event based)')
+        logging.info("Configured voltage source: %s",  "evcc" if (voltagesSet == 1) else ("static" if (voltagesSet == 0) else "illegal value or not set (should be 0 or 1)"))
+        logging.info("Configured current source: %s",  "evcc" if (currentsSet == 1) else ("none" if (currentsSet == 0) else "illegal value or not set (should be 0 or 1)"))
+        logging.info("Configured evcc API call interval: %d s", apiInterval / 1000)
         mainloop = gobject.MainLoop()
         mainloop.run()
     except Exception as e:
