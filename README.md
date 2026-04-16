@@ -1,3 +1,5 @@
+This fork occurred due to some problems and limitations of the original by SamuelBrucksch and the fork by Naiki92 that i had a few years ago.
+
 # dbus-open-evcc
 Integrate EVCC charger into Victron Venus OS
 
