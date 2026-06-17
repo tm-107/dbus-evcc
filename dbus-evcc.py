@@ -206,12 +206,14 @@ class DbusEvccChargerService:
             if status == 0:
                 self._dbusservice['/Ac/Energy/Forward'] = 0
             else:
-                self._dbusservice['/Ac/Energy/Forward'] = float(loadpoint['chargedEnergy']) #/ 1000  # kWh
+                # evcc reports Wh (see v0.309.1 in core/loadpoint_api.go:212), we need kWh
+                self._dbusservice['/Ac/Energy/Forward'] = float(loadpoint['chargedEnergy']) / 1000  # kWh
 
             if status == 0:
                 self._dbusservice['/ChargingTime'] = 0
             else:
-                self._dbusservice['/ChargingTime'] = int(loadpoint["chargeDuration"]) #/ 1000000000  # s
+                # evcc reports seconds, no conversion needed
+                self._dbusservice['/ChargingTime'] = int(loadpoint["chargeDuration"]) # s
 
             # logging
             logging.debug("Wallbox Consumption (/Ac/Power): %s" % (self._dbusservice['/Ac/Power']))
