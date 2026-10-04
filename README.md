@@ -1,3 +1,6 @@
+**There will be no further development here for the time being.  
+I am now using [dbus-evcc-multi](https://github.com/okuegow/dbus-evcc-multi), which operates more efficiently with multiple loadpoints.**
+
 This fork occurred due to some problems and limitations of the original by SamuelBrucksch and the fork by Naiki92 that i had a few years ago.
 
 # dbus-open-evcc
